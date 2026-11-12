@@ -915,7 +915,7 @@ async function loadProfile(){
 }
 
 function enterGuest(){ DEMO=true; booting=false; $("gate").classList.add("hidden"); ["top","app","tabbar"].forEach(i=>$(i).classList.remove("hide")); boot(); }
-function askSignin(){ DEMO=DEMO; ["top","app","tabbar"].forEach(i=>$(i).classList.add("hide")); $("gate").classList.remove("hidden"); if(typeof setMode==="function") setMode("signup"); const d=$("demo-go"); if(d) d.classList.remove("hide"); }
+function askSignin(){ DEMO=!SUPABASE_URL||!SUPABASE_ANON_KEY; if(!DEMO){ me=null; profile=null; booting=false; } ["top","app","tabbar"].forEach(i=>$(i).classList.add("hide")); $("gate").classList.remove("hidden"); if(typeof setMode==="function") setMode("signup"); const d=$("demo-go"); if(d) d.classList.remove("hide"); }
 document.addEventListener("click",e=>{ if(DEMO&&SUPABASE_URL&&e.target.closest&&e.target.closest("#top-chip")) askSignin(); });
 let booting=false;
 let bootTries=0;
