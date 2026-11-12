@@ -1,14 +1,17 @@
 {
-  "name": "Lagos Gig",
-  "short_name": "Lagos Gig",
-  "description": "Post gigs. Get them done.",
+  "name": "Gigly",
+  "short_name": "Gigly",
+  "description": "Post gigs. Get them done. Find work or hire help anywhere in the world.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f2f2f7",
-  "theme_color": "#34c759",
+  "orientation": "portrait",
+  "background_color": "#07081a",
+  "theme_color": "#5b6cff",
+  "categories": ["business", "productivity"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }
