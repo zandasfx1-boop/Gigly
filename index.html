@@ -14,9 +14,9 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Gigly">
 <meta property="og:title" content="Gigly | Post gigs. Get them done.">
-<meta property="og:description" content="Find work or hire help near you, anywhere. Post a gig, chat with freelancers and get it done. Free 3-day trial.">
-<meta property="og:url" content="https://lagos-gig.vercel.app/">
-<meta property="og:image" content="https://lagos-gig.vercel.app/lagos-gig-banner.png">
+<meta property="og:description" content="Find work or hire help near you, anywhere. Post a gig, chat with freelancers and get it done. Free 5-day trial.">
+<meta property="og:url" content="https://gigly-x.vercel.app/">
+<meta property="og:image" content="https://gigly-x.vercel.app/gigly-banner.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -492,6 +492,18 @@ body{background:radial-gradient(900px 500px at 10% -5%,rgba(91,108,255,.28),tran
 :root[data-theme="dark"] #tabbar{background:rgba(18,22,58,.96)!important}
 #top{background:var(--bg)!important}
 html{scroll-behavior:auto}body{-webkit-overflow-scrolling:touch}
+
+.demo-link{display:block;margin:14px auto 0;padding:13px 18px;border-radius:16px;text-align:center;font-weight:800;color:var(--acc)!important;background:var(--card);border:1px solid var(--glass-b);text-decoration:none;cursor:pointer}
+
+/* ===== less see-through: solid sheets, softly blurred backdrop ===== */
+:root{--card:rgba(255,255,255,.9);--sheet:#f4f6ff}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--card:rgba(20,24,60,.92);--sheet:#0e1130}}
+:root[data-theme="dark"]{--card:rgba(20,24,60,.92);--sheet:#0e1130}
+#sheet{-webkit-backdrop-filter:blur(10px)!important;backdrop-filter:blur(10px)!important;background:rgba(7,8,26,.45)!important}
+#sheet-body,#sheet .body,.sheet-body{background:var(--sheet)!important;opacity:1!important}
+#sheet-body .glass,#sheet-body .item,#sheet-body .group{background:var(--card)!important;border:1px solid var(--glass-b)!important}
+#sheet-body input,#sheet-body textarea,#sheet-body select{background:var(--card)!important;border:1px solid var(--glass-b);color:var(--tx,inherit)}
+.glass,.group,.item,.card{background:var(--card)!important}
 </style>
 </head>
 <body>
@@ -516,7 +528,7 @@ html{scroll-behavior:auto}body{-webkit-overflow-scrolling:touch}
     <button class="btn btn-p" id="a-go">Create account</button>
     <p id="err"></p>
     <p class="sw" id="a-sw">Already registered? <a id="a-tg">Sign in</a></p>
-    <a class="demo-link hide" id="demo-go">Preview the app without signing in</a>
+    <a class="demo-link hide" id="demo-go">Keep browsing as a guest</a>
     <p class="legal">By continuing you agree to our <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>
   </div>
 </div>
@@ -542,6 +554,23 @@ const CATEGORIES = ["Cleaning","Delivery & Errands","Design & Creative","Writing
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const CUR_MAP={GB:"GBP",US:"USD",CA:"CAD",AU:"AUD",NZ:"NZD",NG:"NGN",GH:"GHS",KE:"KES",ZA:"ZAR",UG:"UGX",TZ:"TZS",EG:"EGP",MA:"MAD",IN:"INR",PK:"PKR",BD:"BDT",AE:"AED",SA:"SAR",TR:"TRY",JP:"JPY",CN:"CNY",KR:"KRW",SG:"SGD",MY:"MYR",PH:"PHP",ID:"IDR",TH:"THB",VN:"VND",BR:"BRL",MX:"MXN",AR:"ARS",CO:"COP",CL:"CLP",CH:"CHF",SE:"SEK",NO:"NOK",DK:"DKK",PL:"PLN",CZ:"CZK",HU:"HUF",RO:"RON",IL:"ILS",RU:"RUB",UA:"UAH"};
+"AT BE CY EE FI FR DE GR IE IT LV LT LU MT NL PT SK SI ES HR".split(" ").forEach(c=>CUR_MAP[c]="EUR");
+let GEO={code:"",name:""}, MYCUR="USD", RATES=null;
+async function initGeo(){
+  try{ GEO.code=(new Intl.Locale(navigator.language).maximize().region)||""; }catch(_){}
+  try{ const c=new AbortController(); setTimeout(()=>c.abort(),2500); const j=await (await fetch("/api/geo",{signal:c.signal})).json(); if(j&&j.country) GEO.code=j.country; }catch(_){}
+  MYCUR=CUR_MAP[GEO.code]||"USD";
+  try{ GEO.name=new Intl.DisplayNames(["en"],{type:"region"}).of(GEO.code)||""; }catch(_){}
+  try{ const c=JSON.parse(localStorage.getItem("gg_rates")||"null"); if(c&&Date.now()-c.t<432e5) RATES=c.r; }catch(_){}
+  if(!RATES){ try{ const c=new AbortController(); setTimeout(()=>c.abort(),3000); const j=await (await fetch("https://open.er-api.com/v6/latest/USD",{signal:c.signal})).json(); if(j&&j.rates){ RATES=j.rates; try{localStorage.setItem("gg_rates",JSON.stringify({t:Date.now(),r:RATES}))}catch(_){} } }catch(_){} }
+}
+const GEO_READY=initGeo();
+const GEOC=()=>COUNTRIES.includes(GEO.name)?GEO.name:"";
+const curSym=c=>{ try{ return new Intl.NumberFormat(undefined,{style:"currency",currency:c,currencyDisplay:"narrowSymbol"}).formatToParts(0).find(x=>x.type==="currency").value; }catch(_){ return c; } };
+const conv=(n,cur)=>{ cur=cur||"NGN"; n=Number(n); if(cur===MYCUR||!RATES||!RATES[cur]||!RATES[MYCUR]) return n; return n/RATES[cur]*RATES[MYCUR]; };
+function money(n,cur){ if(!n) return "Negotiable"; cur=cur||"NGN"; const ok=cur===MYCUR||(RATES&&RATES[cur]&&RATES[MYCUR]); const c=ok?MYCUR:cur, v=ok?conv(n,cur):Number(n); const f=new Intl.NumberFormat(undefined,{style:"currency",currency:c,maximumFractionDigits:0}).format(v); return (ok&&cur!==MYCUR?"≈ ":"")+f; }
 const naira = n => n ? "₦" + Number(n).toLocaleString() : "Negotiable";
 const tsGet=()=>{ try{return localStorage.getItem("lg-ts")||"1";}catch(_){return "1";} };
 function setTs(v){ try{localStorage.setItem("lg-ts",v);}catch(_){} const a=document.getElementById("app"); if(a) a.style.zoom=v; }
@@ -746,7 +775,7 @@ function notifGate(){
 }
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),3200);}
 
-const DEMO = !SUPABASE_URL || !SUPABASE_ANON_KEY;
+let DEMO = !SUPABASE_URL || !SUPABASE_ANON_KEY;
 const __mem={};
 const safeStore={
   getItem:k=>{ try{ return localStorage.getItem(k); }catch(_){ return k in __mem?__mem[k]:null; } },
@@ -758,12 +787,12 @@ const sb = DEMO ? null : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{
 let me = null, profile = null, io;
 
 const DEMO_GIGS = [
-  {id:"1",title:"Need a plumber to fix a leaking pipe",category:"Repairs & Handyman",description:"Kitchen sink pipe is leaking in my flat in Lekki Phase 1. Need someone this weekend with their own tools.",budget:15000,location:"Lekki",profiles:{full_name:"Tunde Bakare",verified:true}},
-  {id:"2",title:"Logo and flyer for my bakery",category:"Design & Creative",description:"Looking for a designer to create a logo and 2 Instagram flyers for a new bakery in Yaba.",budget:25000,location:"Yaba",profiles:{full_name:"Amaka Obi",verified:true}},
-  {id:"3",title:"Deliver 20 parcels across the Island",category:"Delivery & Errands",description:"Dispatch rider with a bike needed to deliver 20 small parcels from Ikeja to Victoria Island on Friday.",budget:20000,location:"Ikeja → VI",profiles:{full_name:"Chidi Eze",verified:false}},
-  {id:"4",title:"Math tutor for SS2 student",category:"Tutoring & Lessons",description:"Two evenings a week, preparing for WAEC. Prefer someone who can come to Surulere.",budget:30000,location:"Surulere",profiles:{full_name:"Funke Adeyemi",verified:false}},
-  {id:"5",title:"Photographer for a naming ceremony",category:"Photography & Video",description:"Half-day event photography and 30 edited photos delivered in 3 days.",budget:50000,location:"Ajah",profiles:{full_name:"Ngozi Okafor",verified:false}},
-  {id:"6",title:"Build a simple website for my shop",category:"Tech & Web",description:"One-page site with WhatsApp order button and product gallery. Mobile-friendly.",budget:null,location:"Remote",profiles:{full_name:"Ibrahim Musa",verified:true}}
+  {id:"1",title:"Logo and brand kit for my startup",category:"Design & Creative",description:"Looking for a designer to create a logo, colour palette and social media banners for a new fintech startup.",budget:150000,location:"London, United Kingdom",profiles:{full_name:"Amara Okoye",verified:true}},
+  {id:"2",title:"Dispatch rider for weekend deliveries",category:"Delivery & Errands",description:"Reliable rider with a bike needed to deliver 20 small parcels across the city on Saturday.",budget:20000,location:"Lagos, Nigeria",profiles:{full_name:"Chidi Eze",verified:false}},
+  {id:"3",title:"Build a one-page website for my cafe",category:"Tech & Web",description:"Mobile-friendly site with menu, photo gallery and a WhatsApp order button.",budget:90000,location:"Remote",profiles:{full_name:"Sofia Martins",verified:true}},
+  {id:"4",title:"Math tutor for a high school student",category:"Tutoring & Lessons",description:"Two evenings a week, online or in person, preparing for final exams.",budget:30000,location:"Toronto, Canada",profiles:{full_name:"Daniel Park",verified:false}},
+  {id:"5",title:"Photographer for a birthday party",category:"Photography & Video",description:"Half-day event photography and 30 edited photos delivered within 3 days.",budget:50000,location:"Dubai, United Arab Emirates",profiles:{full_name:"Layla Hassan",verified:false}},
+  {id:"6",title:"Fix a leaking kitchen pipe",category:"Repairs & Handyman",description:"Need a plumber this weekend with their own tools. Quick job, will pay on completion.",budget:15000,location:"Nairobi, Kenya",profiles:{full_name:"Peter Mwangi",verified:true}}
 ];
 const DEMO_PROFILE = {id:"demo",full_name:"Demo User",username:"demo",headline:"Freelancer & client",bio:"This is a preview profile.",location:"Lagos",skills:["design","delivery"],avatar_url:null,verified:false,is_admin:true,trial_ends:new Date(Date.now()+3*864e5).toISOString()};
 let sub=null;
@@ -774,7 +803,7 @@ async function loadSub(){
 }
 function applyBrand(){ const n=document.getElementById("brand-name"); if(!n) return; let x=false; try{ x=!DEMO&&hasPass(); }catch(_){} n.innerHTML=x?'Gigly<span class="gx">X</span>':"Gigly"; document.title=x?"Gigly X | Post gigs. Get them done.":"Gigly | Post gigs. Get them done."; }
 function passInfo(){
-  if(DEMO) return {ok:true,kind:"trial",days:3};
+  if(DEMO) return {ok:true,kind:"trial",days:5};
   if(profile.is_admin) return {ok:true,kind:"admin"};
   const end=sub&&sub.status==="active"?new Date(sub.current_period_end):null;
   if(end&&end>new Date()) return {ok:true,kind:"pass",until:end,days:Math.ceil((end-Date.now())/864e5)};
@@ -794,7 +823,7 @@ async function callFn(body){
   return data||{};
 }
 async function openPaywall(){
-  if(DEMO){ toast("Preview mode: payments need a real account"); return; }
+  if(DEMO){ askSignin(); return; }
   const body=$("sheet-body");
   body.innerHTML=`<div class="grab"></div><h2 style="font-size:24px;letter-spacing:-.03em">Monthly pass</h2><p class="sub" style="margin-top:6px">Loading price...</p>`;
   $("sheet").classList.add("open");
@@ -831,7 +860,7 @@ async function handlePayReturn(){
   toast(r.active?"Payment received. Your pass is active!":"We have not received the payment yet. Try again in a minute.");
 }
 document.addEventListener("click",e=>{ if(e.target.closest("[data-pay]")) openPaywall(); if(e.target.closest("[data-cust]")) openCustomize(); if(e.target.closest("[data-verify]")) openVerify(); });
-const live = () => { if(DEMO){toast("Preview mode: connect Supabase to save");return false;} return true; };
+const live = () => { if(DEMO){askSignin();return false;} return true; };
 
 /* ---------- reveal ---------- */
 function reveal(){
@@ -884,17 +913,21 @@ async function loadProfile(){
     await new Promise(r=>setTimeout(r,500));
   }
 }
+
+function enterGuest(){ DEMO=true; booting=false; $("gate").classList.add("hidden"); ["top","app","tabbar"].forEach(i=>$(i).classList.remove("hide")); boot(); }
+function askSignin(){ DEMO=DEMO; ["top","app","tabbar"].forEach(i=>$(i).classList.add("hide")); $("gate").classList.remove("hidden"); if(typeof setMode==="function") setMode("signup"); const d=$("demo-go"); if(d) d.classList.remove("hide"); }
+document.addEventListener("click",e=>{ if(DEMO&&SUPABASE_URL&&e.target.closest&&e.target.closest("#top-chip")) askSignin(); });
 let booting=false;
 let bootTries=0;
 async function boot(){
-  if(booting) return; booting=true;
-  if(DEMO){ me={id:"demo"}; profile=DEMO_PROFILE; }
+  if(booting) return; booting=true; await GEO_READY;
+  if(DEMO){ me={id:"demo"}; profile={...DEMO_PROFILE,is_admin:false,full_name:"Guest",location:""}; }
   else { await loadProfile(); if(!profile){booting=false; if(++bootTries<4){ setTimeout(()=>{ if(!profile&&me) boot(); },2000*bootTries); } else toast("Could not load your profile. Check your connection and reopen the app."); return;}
     bootTries=0; await loadSub(); await handlePayReturn(); applyTheme(profile); }
   $("gate").classList.add("hidden"); if(!DEMO) endSplash(true);
   if(!DEMO&&(!location.hash||location.hash==="#")){ try{ const l=localStorage.getItem("lg-last:"+me.id); if(l&&/^#(browse|post|mine|inbox|profile)$/.test(l)) history.replaceState(null,"",location.pathname+l); }catch(_){} }
   ["top","app","tabbar"].forEach(i=>$(i).classList.remove("hide"));
-  $("top-chip").textContent = DEMO ? "Preview" : (profile.verified?"✓ Verified":"Member");
+  $("top-chip").textContent = DEMO ? "Sign in" : (profile.verified?"✓ Verified":"Member");
   applyBrand(); buildTabs(); route();
   deepLink(); listenAll(); welcomePopup(()=>guideTour(false,notifGate));
   if(!DEMO&&"Notification" in window&&Notification.permission==="granted") syncPush().catch(()=>{});
@@ -944,7 +977,7 @@ async function vBrowse(){
   $("app").innerHTML=`<h1 class="large">Gigs</h1><p class="sub">Find work or get something done, wherever you are.</p>${trialBanner()}${verifyCard()}
   <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" placeholder="Search gigs" type="search"></div>
   <select id="loc" class="locsel" aria-label="Location"><option value="">🌍 Worldwide (newest first)</option>${STATES.map(x=>`<option>${esc(x)}</option>`).join("")}</select>
-  <div class="fl"><select id="srt" class="locsel" aria-label="Sort"><option value="">Sort: Smart</option><option value="hi">Budget: high to low</option><option value="lo">Budget: low to high</option></select><input id="bmin" type="number" inputmode="numeric" placeholder="Min ₦"><input id="bmax" type="number" inputmode="numeric" placeholder="Max ₦"></div>
+  <div class="fl"><select id="srt" class="locsel" aria-label="Sort"><option value="">Sort: Smart</option><option value="hi">Budget: high to low</option><option value="lo">Budget: low to high</option></select><input id="bmin" type="number" inputmode="numeric" placeholder="Min ${curSym(MYCUR)}"><input id="bmax" type="number" inputmode="numeric" placeholder="Max ${curSym(MYCUR)}"></div>
   <div class="chips" id="chips"></div>
   <button class="sent-pill" id="alert-me" style="margin-top:2px">🔔 Alert me about new matches</button>
   <div class="grid" id="grid">${[1,2,3,4].map(()=>'<div class="glass card sk"><i></i><i></i><i style="width:60%"></i></div>').join("")}</div>`;
@@ -964,14 +997,14 @@ async function vBrowse(){
     const q=$("q").value.toLowerCase();
     const st=$("loc").value, rk=g=>(g.taken?4:0)+((st&&!inState(g.location,st))?2:0)+(g.profiles?.verified?0:1);
     let prevSec=-1; const sv=$("srt").value, bmin=Number($("bmin").value)||0, bmax=Number($("bmax").value)||0; const hdr=g=>{ if(sv) return ""; const sec=g.taken?2:(st&&!inState(g.location,st))?1:0; const h=(st&&sec<2&&sec!==prevSec)?`<div class="group-title" style="grid-column:1/-1;margin:6px 0 0">${sec?"Elsewhere in the world":"📍 In "+esc(st)}</div>`:""; prevSec=sec; return h; };
-    const f=all.filter(g=>(!cat||g.category===cat)&&(!q||(g.title+" "+g.description).toLowerCase().includes(q))&&(!bmin||Number(g.budget)>=bmin)&&(!bmax||Number(g.budget)<=bmax)).sort((a,b)=>sv==="hi"?Number(b.budget)-Number(a.budget):sv==="lo"?Number(a.budget)-Number(b.budget):rk(a)-rk(b));
+    const f=all.filter(g=>(!cat||g.category===cat)&&(!q||(g.title+" "+g.description).toLowerCase().includes(q))&&(!bmin||conv(g.budget,g.currency)>=bmin)&&(!bmax||conv(g.budget,g.currency)<=bmax)).sort((a,b)=>sv==="hi"?Number(b.budget)-Number(a.budget):sv==="lo"?Number(a.budget)-Number(b.budget):rk(a)-rk(b));
     $("grid").innerHTML=f.length?f.map(g=>`${hdr(g)}<div class="glass card reveal${g.taken?" taken":""}" data-id="${esc(g.id)}"><span class="cat">${esc(g.category)}</span>${g.location?`<span class="loc">📍 ${esc(g.location)}</span>`:""}${g.taken?`<span class="taken-b">Taken</span>`:""}<h3>${esc(g.title)}</h3><p>${esc(g.description.slice(0,110))}${g.description.length>110?"…":""}</p><div class="rx">${rxRow(g.id)}</div>
-      <div class="foot"><div class="by plink" data-uid="${esc(g.owner||"")}"${g.as_gigly?' data-g="1"':""}>${avS(dp(g.profiles,g.as_gigly),30)}${esc(dp(g.profiles,g.as_gigly)?.full_name||"Member")} ${dp(g.profiles,g.as_gigly)?.verified?'<span class="tick">✓</span>':""}</div><span class="price">${naira(g.budget)}</span></div></div>`).join(""):`<div class="empty">No gigs found.</div>`;
+      <div class="foot"><div class="by plink" data-uid="${esc(g.owner||"")}"${g.as_gigly?' data-g="1"':""}>${avS(dp(g.profiles,g.as_gigly),30)}${esc(dp(g.profiles,g.as_gigly)?.full_name||"Member")} ${dp(g.profiles,g.as_gigly)?.verified?'<span class="tick">✓</span>':""}</div><span class="price">${money(g.budget,g.currency)}</span></div></div>`).join(""):`<div class="empty">No gigs found.</div>`;
     document.querySelectorAll(".card[data-id]").forEach(el=>el.onclick=e=>{ const pl=e.target.closest(".plink"); if(pl&&pl.dataset.uid){ openProfile(pl.dataset.uid,pl.dataset.g==="1"); return; } openGig(all.find(g=>g.id===el.dataset.id)); });
     reveal();
   };
   let initLoc=null; try{ initLoc=localStorage.getItem("gigloc"); }catch(_){}
-  if(initLoc===null) initLoc=STATES.find(x=>inState(profile.location,x))||"";
+  if(initLoc===null) initLoc=STATES.find(x=>inState(profile.location,x))||GEOC();
   $("loc").value=initLoc;
   $("loc").onchange=()=>{ try{ localStorage.setItem("gigloc",$("loc").value); }catch(_){} draw(); };
   $("q").oninput=draw; ["srt","bmin","bmax"].forEach(i=>$(i).oninput=draw); chips(); draw();
@@ -986,11 +1019,11 @@ function openGig(g){
   $("sheet-body").innerHTML=`<div class="grab"></div><span class="cat">${esc(g.category)}</span><h2 style="font-size:26px;font-weight:800;letter-spacing:-.03em;margin:4px 0 10px">${esc(g.title)}</h2>
   <div class="by plink" data-uid="${esc(g.owner||"")}"${g.as_gigly?' data-g="1"':""} style="margin-bottom:14px">${avS(dp(g.profiles,g.as_gigly),30)}${esc(dp(g.profiles,g.as_gigly)?.full_name||"Member")} ${dp(g.profiles,g.as_gigly)?.verified?'<span class="tick">✓</span>':""} · ${esc(g.location||"Worldwide")}</div>
   <p style="white-space:pre-wrap;font-size:16px;line-height:1.5">${esc(g.description)}</p>
-  <div class="foot" style="margin:18px 0"><span class="muted" style="color:var(--muted)">Budget</span><span class="price" style="font-size:22px">${naira(g.budget)}</span></div>
+  <div class="foot" style="margin:18px 0"><span class="muted" style="color:var(--muted)">Budget</span><span class="price" style="font-size:22px">${money(g.budget,g.currency)}</span></div>
   <div id="rx-bar" class="rx-bar"></div><div id="req-box"></div>
   <button class="btn btn-s" style="margin-top:10px" onclick="closeSheet()">Close</button>`;
   { const row=document.createElement("div"); row.style.cssText="display:flex;gap:8px;margin:10px 0 0"; row.innerHTML='<button class="btn btn-s btn-sm" id="gs-save" style="flex:1">♡ Save</button><button class="btn btn-s btn-sm" id="gs-share" style="flex:1">Share</button>'; const rb=$("req-box"); if(rb) rb.parentNode.insertBefore(row,rb.nextSibling);
-    $("gs-share").onclick=async()=>{ const d={title:"Gigly: "+g.title,text:g.title+" (₦"+Number(g.budget||0).toLocaleString()+") on Gigly",url:location.origin+"/?gig="+g.id}; try{ if(navigator.share) await navigator.share(d); else { await navigator.clipboard.writeText(d.text+" "+d.url); toast("Link copied"); } }catch(_){} };
+    $("gs-share").onclick=async()=>{ const d={title:"Gigly: "+g.title,text:g.title+" ("+money(g.budget,g.currency)+") on Gigly",url:location.origin+"/?gig="+g.id}; try{ if(navigator.share) await navigator.share(d); else { await navigator.clipboard.writeText(d.text+" "+d.url); toast("Link copied"); } }catch(_){} };
     const sv=$("gs-save"); let saved=false;
     if(!DEMO&&me){ sb.from("saved_gigs").select("gig_id").eq("user_id",me.id).eq("gig_id",g.id).maybeSingle().then(({data})=>{ saved=!!data; sv.textContent=saved?"♥ Saved":"♡ Save"; }); }
     sv.onclick=async()=>{ if(!live()) return; if(saved){ await sb.from("saved_gigs").delete().eq("user_id",me.id).eq("gig_id",g.id); saved=false; } else { const {error}=await sb.from("saved_gigs").insert({user_id:me.id,gig_id:g.id}); if(error){ toast(/relation|schema/i.test(error.message)?"Run direct_chat.sql first":error.message); return; } saved=true; } sv.textContent=saved?"♥ Saved":"♡ Save"; toast(saved?"Saved. Find it in Settings → Saved gigs":"Removed"); }; }
@@ -1033,14 +1066,14 @@ async function openBlocked(){
 function closeSheet(){$("sheet").classList.remove("open");}
 let vIdType="NIN";
 function verifyLink(){
-  const msg="Hi, I'd like the blue tick on Gigly (₦"+VERIFY_PRICE.toLocaleString()+"). Name: "+(profile?.full_name||"")+". Email: "+(me?.email||"")+". I will verify with my "+vIdType+".";
+  const msg="Hi, I'd like the blue tick on Gigly "+". Name: "+(profile?.full_name||"")+". Email: "+(me?.email||"")+". I will verify with my "+vIdType+".";
   return ADMIN_WHATSAPP ? "https://wa.me/"+ADMIN_WHATSAPP+"?text="+encodeURIComponent(msg)
     : "mailto:"+ADMIN_EMAIL+"?subject="+encodeURIComponent("Blue tick request")+"&body="+encodeURIComponent(msg);
 }
 async function openProfile(uid,asG){ 
   if(!uid) return;
   if(me&&uid===me.id){ closeSheet(); location.hash="#profile"; return; }
-  if(DEMO){ toast("Preview mode: connect Supabase to view profiles"); return; }
+  if(DEMO){ askSignin(); return; }
   $("sheet-body").innerHTML='<div class="grab"></div><div class="empty">Loading...</div>';
   $("sheet").classList.add("open");
   let {data:p,error}=await sb.from("profiles").select("id,full_name,username,headline,bio,location,skills,avatar_url,verified,is_admin").eq("id",uid).maybeSingle();
@@ -1057,7 +1090,7 @@ async function openProfile(uid,asG){
   ${p.bio?`<div class="group-title">About</div><p style="white-space:pre-wrap;font-size:15px;line-height:1.5;margin:0 0 14px">${esc(p.bio)}</p>`:""}
   <button class="btn btn-p" id="pf-dm" style="display:block;width:100%;margin:0 0 14px">Message</button>
   <div class="group-title">Gigs by ${esc((p.full_name||"this member").split(" ")[0])}</div>
-  <div id="pg-list">${gs&&gs.length?gs.map(g=>`<div class="glass card" data-gid="${esc(g.id)}" style="margin-bottom:8px"><span class="cat">${esc(g.category)}</span><h3>${esc(g.title)}</h3><span class="price">${naira(g.budget)}</span></div>`).join(""):'<div class="empty">No open gigs.</div>'}</div>
+  <div id="pg-list">${gs&&gs.length?gs.map(g=>`<div class="glass card" data-gid="${esc(g.id)}" style="margin-bottom:8px"><span class="cat">${esc(g.category)}</span><h3>${esc(g.title)}</h3><span class="price">${money(g.budget,g.currency)}</span></div>`).join(""):'<div class="empty">No open gigs.</div>'}</div>
   ${p.is_admin?"":`<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-s btn-sm" id="pf-blk" style="flex:1">Block</button><button class="btn btn-s btn-sm" id="pf-rep" style="flex:1">Report</button></div>`}
   <button class="btn btn-s" style="margin-top:10px" onclick="closeSheet()">Close</button>`;
   $("pf-dm").onclick=()=>startDirect(uid);
@@ -1089,7 +1122,7 @@ function vPost(){
     <div class="col"><label>Describe the job</label><textarea id="p-desc" maxlength="4000" placeholder="What needs doing, when, and any requirements?"></textarea></div>
   </div>
   <button class="btn btn-p" id="p-go">Submit gig</button>`;
-  { let d=null; try{ d=localStorage.getItem("gigloc"); }catch(_){} d=d||STATES.find(x=>inState(profile.location,x))||""; $("p-st").value=d; }
+  { let d=null; try{ d=localStorage.getItem("gigloc"); }catch(_){} d=d||STATES.find(x=>inState(profile.location,x))||GEOC(); $("p-st").value=d; }
   reveal();
   $("p-go").onclick=async()=>{
     const title=$("p-title").value.trim(), description=$("p-desc").value.trim();
@@ -1098,7 +1131,7 @@ function vPost(){
     if(!live())return;
     if(!canUse())return;
     $("p-go").disabled=true;
-    const {data,error}=await sb.from("gigs").insert({owner:me.id,title,category:$("p-cat").value,description,budget:parseInt($("p-bud").value)||null,as_gigly:!!(profile.is_admin&&profile.acting_as_gigly),location:($("p-loc").value.trim()?$("p-loc").value.trim()+", ":"")+stt}).select().single();
+    const {data,error}=await sb.from("gigs").insert({owner:me.id,title,category:$("p-cat").value,description,budget:parseInt($("p-bud").value)||null,currency:MYCUR,as_gigly:!!(profile.is_admin&&profile.acting_as_gigly),location:($("p-loc").value.trim()?$("p-loc").value.trim()+", ":"")+stt}).select().single();
     $("p-go").disabled=false;
     if(error){ if(!passErr(error)) toast(error.message); return;}
     toast(data.status==="approved"?"Your gig is live!":"Submitted! It will be listed once reviewed.");
@@ -1112,7 +1145,7 @@ async function vMine(){
   let data=[];
   if(DEMO) data=[{id:"d1",title:"Need a plumber in Lekki",category:"Repairs & Handyman",budget:15000,status:"approved"},{id:"d2",title:"Flyer design for my event",category:"Design & Creative",budget:8000,status:"pending"}];
   else{ const r=await sb.from("gigs").select("*").eq("owner",me.id).order("created_at",{ascending:false}); if(r.error){$("ml").innerHTML=`<div class="empty">${esc(r.error.message)}</div>`;return;} data=r.data||[]; }
-  $("ml").innerHTML=data.length?data.map(g=>`<div class="glass item reveal"><div class="grow"><b>${esc(g.title)}</b><div class="m">${esc(g.category)} · ${naira(g.budget)}</div></div><span class="pill ${g.taken?"rejected":g.status}">${g.taken?"Taken":g.status==="pending"?"In review":g.status}</span>
+  $("ml").innerHTML=data.length?data.map(g=>`<div class="glass item reveal"><div class="grow"><b>${esc(g.title)}</b><div class="m">${esc(g.category)} · ${money(g.budget,g.currency)}</div></div><span class="pill ${g.taken?"rejected":g.status}">${g.taken?"Taken":g.status==="pending"?"In review":g.status}</span>
     <div class="actions">${g.status==="approved"?`<button class="btn btn-s btn-sm" data-taken="${esc(g.id)}" data-v="${g.taken?0:1}">${g.taken?"Reopen":"Mark as taken"}</button>`:""}${g.status!=="closed"?`<button class="btn btn-s btn-sm" data-close="${esc(g.id)}">Close</button>`:""}<button class="btn btn-s btn-sm" style="color:var(--bad)" data-del="${esc(g.id)}">Delete</button></div></div>`).join(""):`<div class="empty">You haven't posted any gigs yet.</div>`;
   seeMore($("ml"),3);
   document.querySelectorAll("[data-taken]").forEach(b=>b.onclick=async()=>{ if(!live())return; const {error}=await sb.rpc("set_gig_taken",{gid:b.dataset.taken,v:b.dataset.v==="1"}); if(error){toast(error.message);return;} toast(b.dataset.v==="1"?"Marked as taken":"Gig reopened"); vMine(); });
@@ -1339,7 +1372,7 @@ function vSettings(){
   $("st-reset").onclick=()=>{ setThemeMode("system"); setRm(false); try{ localStorage.removeItem("ct:"+me.id); }catch(_){} mark(); vSettings(); toast("Display settings reset"); };
   $("st-guide").onclick=()=>guideTour(true);
   $("st-sv").onclick=async()=>{ if(!live()) return; const {data:r}=await sb.from("saved_gigs").select("gig_id").eq("user_id",me.id); const ids=(r||[]).map(x=>x.gig_id); const {data:gs}=ids.length?await sb.from("gigs").select("id,title,budget,category").in("id",ids):{data:[]};
-    $("sheet-body").innerHTML='<h2 style="margin:0 0 8px;font-size:22px;font-weight:800">Saved gigs</h2>'+((gs||[]).length?gs.map(g=>`<div class="glass card" data-gid="${esc(g.id)}" style="margin-bottom:8px"><span class="cat">${esc(g.category)}</span><h3>${esc(g.title)}</h3><span class="price">${naira(g.budget)}</span></div>`).join(""):'<div class="empty">Nothing saved yet.</div>')+'<button class="btn btn-s" style="margin-top:10px" onclick="closeSheet()">Close</button>';
+    $("sheet-body").innerHTML='<h2 style="margin:0 0 8px;font-size:22px;font-weight:800">Saved gigs</h2>'+((gs||[]).length?gs.map(g=>`<div class="glass card" data-gid="${esc(g.id)}" style="margin-bottom:8px"><span class="cat">${esc(g.category)}</span><h3>${esc(g.title)}</h3><span class="price">${money(g.budget,g.currency)}</span></div>`).join(""):'<div class="empty">Nothing saved yet.</div>')+'<button class="btn btn-s" style="margin-top:10px" onclick="closeSheet()">Close</button>';
     document.querySelectorAll("#sheet-body [data-gid]").forEach(el=>el.onclick=async()=>{ const {data:g}=await sb.from("gigs").select("*, profiles!owner(full_name,username,verified,avatar_url,is_admin,acting_as_gigly)").eq("id",el.dataset.gid).maybeSingle(); if(g) openGig(g); });
     $("sheet").classList.add("open"); };
   $("st-blk").onclick=()=>live()&&openBlocked();
@@ -1734,7 +1767,7 @@ async function vAdminCore(){
       gigs=r.data||[];
     }
     $("pq-n").textContent=gigs.length?"· "+gigs.length:"";
-    $("pq").innerHTML=gigs.length?gigs.map(x=>`<div class="glass item"><div class="grow"><b>${esc(x.title)}</b><div class="m">${esc(x.profiles?.full_name)} · ${esc(x.category)} · ${naira(x.budget)}${x.created_at?" · "+new Date(x.created_at).toLocaleDateString("en-NG",{day:"numeric",month:"short"}):""}</div><p style="font-size:14px;margin-top:6px">${esc((x.description||"").slice(0,300))}</p></div>
+    $("pq").innerHTML=gigs.length?gigs.map(x=>`<div class="glass item"><div class="grow"><b>${esc(x.title)}</b><div class="m">${esc(x.profiles?.full_name)} · ${esc(x.category)} · ${money(x.budget,x.currency)}${x.created_at?" · "+new Date(x.created_at).toLocaleDateString("en-NG",{day:"numeric",month:"short"}):""}</div><p style="font-size:14px;margin-top:6px">${esc((x.description||"").slice(0,300))}</p></div>
     <div class="actions"><button class="btn btn-p btn-sm" data-ok="${esc(x.id)}">Approve</button><button class="btn btn-s btn-sm" style="color:var(--bad)" data-no="${esc(x.id)}">Reject</button></div></div>`).join(""):`<div class="empty">Nothing waiting 🎉</div>`;
     document.querySelectorAll("[data-ok]").forEach(b=>b.onclick=async()=>{if(!live())return;const r=await sb.from("gigs").update({status:"approved"}).eq("id",b.dataset.ok);if(r.error)toast(r.error.message);loadGigs();});
     document.querySelectorAll("[data-no]").forEach(b=>b.onclick=async()=>{if(!live())return;const r=await sb.from("gigs").update({status:"rejected"}).eq("id",b.dataset.no);if(r.error)toast(r.error.message);loadGigs();});
@@ -1768,9 +1801,12 @@ if(DEMO){
   $("demo-go").classList.remove("hide"); $("demo-go").onclick=boot;
   boot(); // open straight into the preview so the page is never blank
 }else{
+  $("demo-go").classList.remove("hide");
+  $("demo-go").classList.remove("hide"); $("demo-go").onclick=enterGuest;
   // IMPORTANT: never await other Supabase calls inside this callback (it deadlocks). Defer the work instead.
   sb.auth.onAuthStateChange((_e, session)=>{
     setTimeout(async()=>{
+      if(session&&DEMO&&SUPABASE_URL){ DEMO=false; booting=false; me=null; profile=null; }
       if(session && (!me || me.id!==session.user.id || !profile)){ me=session.user; await boot(); }
       if(!session&&(_e==="SIGNED_OUT"||_e==="INITIAL_SESSION")){
         // A login is still saved on this phone but the app could not read it (weak signal while waking up):
@@ -1784,7 +1820,9 @@ if(DEMO){
           }
         }
         const wasIn=!!profile;
-        endSplash(false); me=null; profile=null; booting=false; $("gate").classList.remove("hidden"); ["top","app","tabbar"].forEach(i=>$(i).classList.add("hide"));
+        endSplash(false); me=null; profile=null; booting=false;
+        if(!wasIn&&!window.__lgOut){ enterGuest(); return; }
+        $("gate").classList.remove("hidden"); ["top","app","tabbar"].forEach(i=>$(i).classList.add("hide"));
         if(wasIn&&!window.__lgOut) toast("Your session ended. Please log in again.");
       }
     },0);
